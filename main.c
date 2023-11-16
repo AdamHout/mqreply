@@ -1,5 +1,24 @@
-/* mqreply - 
+/* mqreply - Demo program to process and reply to requests via IBM MQ
  * 
+ * Summary:
+ * mqreply recieves requests on DEV.Q1 from machine S1558 consisting of a 64KB payload of MQUINT32 values.
+ * The request payloads are sorted and returned to remote queue definition DEV.Q2 via transmission 
+ * queue S1558.TRANS.QUE over channel E6410.S1558 
+ * 
+ * MQ Configuration:
+ * +IBM MQ Advanced for Developers on ubuntu machine E6410
+ *   -Queue Manager:
+ *     -QM_E6410
+ * 
+ *   -Queues:
+ *     -DEV.Q1          - Local queue
+ *     -DEV.Q2          - Remote queue definition
+ *     -S1558.TRANS.QUE - Transmission queue
+ * 
+ *   -Channels:
+ *     -DEV.APP.SVRCONN   - Server-connection
+ *     -QM_S1558.QM_E6410 - Receiver
+ *     -QM_E6410.QM_S1558 - Sender
  * 
  * ----------------------------------------------------------------------------------------------
  * Date       Author        Description
@@ -92,7 +111,7 @@ int main(int argc, char **argv)
    //-------------------------------------------------------
    //Open queue DEV.Q1 for input - Request queue
    //-------------------------------------------------------
-   opnOpt = MQOO_INPUT_AS_Q_DEF | MQOO_FAIL_IF_QUIESCING;
+   opnOpt = MQOO_INPUT_EXCLUSIVE | MQOO_FAIL_IF_QUIESCING;
    strncpy(reqDsc.ObjectName,pReq,strlen(pReq)+1);                                                   
    MQOPEN(hCnx,&reqDsc,opnOpt,&hReq,&opnCde,&resCde);
           
@@ -137,10 +156,15 @@ int main(int argc, char **argv)
    putOpt.Options |= MQPMO_NEW_CORREL_ID;
    
    //-------------------------------------------------------
+   //Display resources in use
    //-------------------------------------------------------
+   printf("\n\n\n");
    printf("Queue Manager: %s\n",pQmg);
    printf("Request Queue: %s\n",pReq);
-   printf("Reply Queue:   %s\n\n",pRpy);
+   printf("Reply Queue:   %s\n",pRpy);
+   printf("Trans Queue:   E6410.TRANS.QUE\n");
+   printf("Rec Channel:   S1558.E6410\n");
+   printf("Send Channel:  E6410.S1558\n\n");
    
    //-------------------------------------------------------
    //1. Retrieve request messages on DEV.Q1
@@ -167,7 +191,8 @@ int main(int argc, char **argv)
          printf("\nMQPUT ended with reason code %d\n",resCde);
          
       if ((++msgCnt) % 25 == 0){
-         printf("\r%d requests recieved %.2lfMB processed",msgCnt,(double)msgCnt * 65536 / 1048576);
+         printf("\rRequests recieved: %6d   Data Processed: %.2lfMB",
+                               msgCnt,(double)msgCnt * 65536 / 1048576);
          fflush(stdout);
       } 
    }while(cmpCde != MQCC_FAILED && resCde == MQRC_NONE);
