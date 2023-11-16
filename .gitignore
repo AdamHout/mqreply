@@ -1,0 +1,8 @@
+*.txt
+*.clangd
+*.clang-format
+*.c.o
+*.c.o.d
+*.d
+Debug/
+
